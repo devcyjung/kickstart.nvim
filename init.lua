@@ -100,28 +100,70 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 
 -- Move code up and down
 vim.keymap.set('n', 'mk', function()
-  local count = vim.v.count1 + 1
-  vim.cmd('m .-' .. count)
+  local count = vim.v.count1
+  local cur = vim.fn.line '.'
+  local max = cur - 1
+  vim.cmd('m-' .. 1 + (math.min(count, max)))
   vim.cmd 'normal! ==' -- reindent
-end, { silent = true })
+end, {
+  silent = true,
+  desc = 'Move code up',
+})
 
 vim.keymap.set('n', 'mj', function()
   local count = vim.v.count1
-  vim.cmd('m .+' .. count)
+  local cur = vim.fn.line '.'
+  local last = vim.fn.line '$'
+  local max = last - cur
+  vim.cmd('m+' .. (math.min(count, max)))
   vim.cmd 'normal! ==' -- reindent
-end, { silent = true })
+end, {
+  silent = true,
+  desc = 'Move code down',
+})
 
 vim.keymap.set('v', 'mk', function()
-  local count = vim.v.count1 + 1
-  vim.cmd("m '<-" .. count)
-  vim.cmd 'normal! gv==gv' --reselect and reindent
-end, { silent = true })
+  local count = vim.v.count1
+  local pos1 = vim.fn.line 'v'
+  local pos2 = vim.fn.line '.'
+  local top = math.min(pos1, pos2)
+  local bot = math.max(pos1, pos2)
+  local max = top - 1
+  local moveBy = math.min(count, max)
+  local newpos1 = pos1 - moveBy
+  local newpos2 = pos2 - moveBy
+  local newtop = top - moveBy
+  local newbot = bot - moveBy
+  vim.cmd(top .. ',' .. bot .. 'm' .. (newtop - 1))
+  vim.cmd('normal! ' .. newpos1 .. 'GV' .. newpos2 .. 'G') -- reselect
+  vim.cmd(newtop .. ',' .. newbot .. 'normal! ==') --reindent
+  vim.cmd('normal! ' .. newpos1 .. 'GV' .. newpos2 .. 'G') -- reselect, (both reselects are needed)
+end, {
+  silent = true,
+  desc = 'Move selected codes up',
+})
 
 vim.keymap.set('v', 'mj', function()
   local count = vim.v.count1
-  vim.cmd("m '>+" .. count)
-  vim.cmd 'normal! gv=gv' --reselect and reindent
-end, { silent = true })
+  local pos1 = vim.fn.line 'v'
+  local pos2 = vim.fn.line '.'
+  local top = math.min(pos1, pos2)
+  local bot = math.max(pos1, pos2)
+  local last = vim.fn.line '$'
+  local max = last - bot
+  local moveBy = math.min(count, max)
+  local newpos1 = pos1 + moveBy
+  local newpos2 = pos2 + moveBy
+  local newtop = top + moveBy
+  local newbot = bot + moveBy
+  vim.cmd(top .. ',' .. bot .. 'm' .. newbot)
+  vim.cmd('normal! ' .. newpos1 .. 'GV' .. newpos2 .. 'G') -- reselect
+  vim.cmd(newtop .. ',' .. newbot .. 'normal! ==') -- reindent
+  vim.cmd('normal! ' .. newpos1 .. 'GV' .. newpos2 .. 'G') -- reselect, (both reselects are needed)
+end, {
+  silent = true,
+  desc = 'Move selected codes down',
+})
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
